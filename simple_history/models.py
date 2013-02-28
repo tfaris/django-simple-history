@@ -7,6 +7,9 @@ from manager import HistoryDescriptor
 
 
 class HistoricalRecords(object):
+    def __init__(self,db_table=None):
+        self.db_table = db_table
+
     def contribute_to_class(self, cls, name):
         self.manager_name = name
         self.module = cls.__module__
@@ -142,9 +145,10 @@ class HistoricalRecords(object):
         Returns a dictionary of fields that will be added to
         the Meta inner class of the historical record model.
         """
-        return {
-            'ordering': ('-history_date', '-history_id'),
-        }
+        options = { 'ordering': ('-history_date', '-history_id') }
+        if self.db_table is not None:
+            options['db_table'] = self.db_table
+        return options
 
     def post_save(self, instance, created, **kwargs):
         if not created and hasattr(instance, 'skip_history_when_saving'):
