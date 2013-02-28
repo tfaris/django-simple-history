@@ -150,12 +150,12 @@ class HistoricalRecords(object):
         if not created and hasattr(instance, 'skip_history_when_saving'):
             return
         if not kwargs.get('raw', False):
-            self.create_historical_record(instance, created and '+' or '~')
+            self.create_historical_record(instance, created and '+' or '~', **kwargs)
 
     def post_delete(self, instance, **kwargs):
-        self.create_historical_record(instance, '-')
+        self.create_historical_record(instance, '-', **kwargs)
 
-    def create_historical_record(self, instance, type):
+    def create_historical_record(self, instance, type, **kwargs):
         history_user = getattr(instance, '_history_user', None)
         manager = getattr(instance, self.manager_name)
         attrs = {}
@@ -163,8 +163,11 @@ class HistoricalRecords(object):
             if isinstance(field, models.FileField) and getattr(instance, field.attname):
                 attrs[field.attname] = getattr(instance, field.attname).path
             attrs[field.attname] = getattr(instance, field.attname)
-        manager.create(history_type=type, history_user=history_user, **attrs)
-
+        
+        historical_instance = manager.model(history_type=type,history_user=history_user)
+        for field,value in attrs.items():
+            setattr(historical_instance,field,value)
+        historical_instance.save(using=kwargs['using'] if 'using' in kwargs else None)
 
 class HistoricalObjectDescriptor(object):
     def __init__(self, model):
